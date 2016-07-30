@@ -28,13 +28,13 @@
 					<td>Actions</td>
 				</tr>
 				<tr ng-repeat="worker in runningWorkers">
-					<td>{{worker.id}}</td>
+					<td>{{worker.awsID}}</td>
 					<td>{{worker.ip}}</td>
 					<td>{{worker.region_human}}</td>
 					<td>{{worker.state}}</td>
 					<td>{{worker.w2cc}}</td>
 					<td>{{worker.cc2w}}</td>
-					<td><a href="#" ng-click="stopWorker(worker.region, worker.id)">stop</a></td>
+					<td><a href="#" ng-click="stopWorker(worker.region, worker.awsID)">stop</a></td>
 				</tr>
 			</table>
 		</div>
@@ -62,7 +62,15 @@
 			</p>
 		</div>
 		<div id="queue">
-			Queue
+			Queue Length: {{work.cnt}}
+
+			<div>
+				<p>Next 20 Jobs:</p>
+				<ul>
+					<li ng-repeat="job in work.jobs">{{job.url}}</li>
+				</ul>
+				<button ng-click="clearQueue()">Clear Queue</button>
+			</div>
 		</div>
 		Work
 	</div>

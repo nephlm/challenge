@@ -8,6 +8,8 @@ import os
 
 import ccLib
 
+OK = 'okay'
+
 app = Flask(__name__, static_url_path='')
 app.debug = True
 app.config.from_object('config')
@@ -16,7 +18,7 @@ app.ccState = {}
 
 app.aws = ccLib.AWS()
 app.aws.createKeypairs()
-app.aws.pushSecurityGroups()
+app.aws.pushSecurityGroups('worker')
 
 app.queue = ccLib.Job
 
@@ -28,57 +30,78 @@ def index():
     # return 'hello'
     return app.send_static_file('index.html')
 
+
+#===================================
+# Workers/Nodes/AWS
+
 @app.route('/api/regions')
 def regions():
-    # aws = ccLib.AWS()
-    #print(aws.getRegions())
     return flask.json.jsonify({'result': app.aws.getRegions()})
 
 @app.route('/api/start/<region>')
 def startWorker(region):
-    # aws = ccLib.AWS()
     app.aws.startWorker(region)
-    return flask.json.jsonify({'result': app.aws.getWorkers()})
+    workers = ccLib.getWorkers(app.session, app.aws, force=True)
+    return flask.json.jsonify({'result': workers})
 
 @app.route('/api/<region>/<id>/stop')
 def stopWorker(region, id):
-    # aws = ccLib.AWS()
     app.aws.stopWorker(region, id)
-    return flask.json.jsonify({'result': app.aws.getWorkers()})
+    workers = ccLib.getWorkers(app.session, app.aws, force=True)
+    return flask.json.jsonify({'result': workers})
+
+@app.route('/api/worker')
+def getWorkers():
+    workers = ccLib.getWorkers(app.session, app.aws)
+    return flask.json.jsonify({'result': workers})
+
+@app.route('/api/worker/<ip>')
+def hello(ip):
+    print('got hello: %s' % ip)
+    return flask.json.jsonify({'result': ccLib.getMyIPAddress()})
+
+
+
+#===============================
+# Work/Jobs
+
+@app.route('/api/work', methods=['GET'])
+def getWorkQueue():
+    jobs = app.queue.getJobs(app.session, 20)
+    return flask.json.jsonify({'result': jobs})
+
+@app.route('/api/work', methods=['DELETE'])
+def clearWork():
+    """
+    Completely empty the work queue.
+    """
+    app.queue.delete(app.session)
+    return flask.json.jsonify({'result': OK})
 
 @app.route('/api/work', methods=['POST'])
 def addWork():
     work = request.get_json()
     print work['urls']
-    app.queue.submit(app.session, work['urls'])
-    return flask.json.jsonify({'result': 'okay'})
+    app.queue.add(app.session, work['urls'])
+    return flask.json.jsonify({'result': OK})
 
-@app.route('/api/work/<id>')
-def getWork(id):
-    work = queue.claim(id)
+@app.route('/api/work/<ip>')
+def getWork(ip):
+    work = app.queue.claim(app.session, ip)
     return flask.json.jsonify({'result': work})
 
 @app.route('/api/work/finish', methods=['POST'])
 def finishWork(id):
     result = request.get_json()
     queue.finishJob(result.get('url'), result.get('id'), result.get('data'))
-    return flask.json.jsonify({'result': 'okay'})
+    return flask.json.jsonify({'result': OK})
 
 @app.route('/api/work/fail', methods=['POST'])
 def failWork(id):
     result = request.get_json()
     queue.failJob(result.get('url'), result.get('id'), result.get('data'))
-    return flask.json.jsonify({'result': 'okay'})
+    return flask.json.jsonify({'result': OK})
 
-
-@app.route('/api/worker')
-def getWorkers():
-    print('getWorker()')
-    return flask.json.jsonify({'result': app.aws.getWorkers()})
-
-@app.route('/api/worker/<id>')
-def hello(id):
-    return flask.json.jsonify({'result': ccLib.getMyIPAddress()})
 
 
 # Or specify port manually:

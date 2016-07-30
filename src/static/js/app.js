@@ -8,6 +8,7 @@ verodinApp.controller('VerodinCtrl',
     $scope.selectedRegion = ['', ''];
     $scope.runningWorkers = {};
     $scope.newUrls = 'Add Urls.  One per line.';
+    $scope.work = {};
 
     $http.get('/api/regions').
         success(function(data) {
@@ -54,9 +55,47 @@ verodinApp.controller('VerodinCtrl',
         });
     }
 
-    $scope.getWorkers()
+    $scope.getQueue = function() {
+        $http.get('/api/work').
+        success(function(data) {
+            console.log(data['result'].jobs[0])
+            $scope.work = data['result'];
+        }).
+        error(function(data) {
+            $scope.error = 'Could retrieve work';
+        });
+    }
 
-    var tick = $interval($scope.getWorkers, 5000);
+    $scope.addUrls = function() {
+        console.log('startWorker');
+        $http.post('/api/work',
+            {'urls': $scope.newUrls.split('\n')}).
+            success(function(data) {
+                console.log('success');
+                $scope.newUrls = '';
+                $scope.getQueue();
+            });
+
+    }
+
+    $scope.clearQueue = function() {
+        $http.delete('/api/work').
+        success(function(data) {
+            $scope.getQueue()
+        }).
+        error(function(data) {
+            $scope.error = 'Could delete queue';
+        });
+    }
+
+    $scope.update = function() {
+        $scope.getWorkers();
+        $scope.getQueue();
+    }
+
+    $scope.update()
+
+    var tick = $interval($scope.update, 5000);
 
     // Cancel interval on page changes
     $scope.$on('$destroy', function(){
@@ -66,15 +105,6 @@ verodinApp.controller('VerodinCtrl',
         }
     });
 
-    $scope.addUrls = function() {
-        console.log('startWorker');
-        $http.post('/api/work/add',
-            {'urls': $scope.newUrls.split('\n')}).
-            success(function(data) {
-                console.log('success');
-            });
-
-    }
 
 
 }]);
