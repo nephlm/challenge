@@ -111,7 +111,8 @@ class AWS(object):
         script += 'apt-get update\n'
         script += 'apt-get install git -y\n'
         script += 'git clone https://github.com/nephlm/verodin /tmp/verodin\n\n'
-        script += '/tmp/verodin/src/worker/install.sh'
+        script += 'chmod -R 755 /tmp/verodin'
+        script += 'sh /tmp/verodin/src/worker/install.sh'
         return script
 
     def startWorker(self, region):
