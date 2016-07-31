@@ -57,11 +57,11 @@ def getWork():
             jobData.raise_for_status()
             r = finishOrFail('finish', jobUrl, app.state['ip'], jobData.text)
             r.raise_for_status()
-    except (requests.ConnectionError, requests.HTTPError):
+    except (requests.ConnectionError, requests.HTTPError, requests.RequestException):
         # Try to fail the job
         try:
             finishOrFail('fail', jobUrl, app.state['ip'], None)
-        except (requests.ConnectionError, requests.HTTPError):
+        except (requests.ConnectionError, requests.HTTPError, requests.RequestException):
             if jobUrl:
                 app.state['failedJobs'].append(jobUrl)
 
