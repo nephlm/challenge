@@ -236,6 +236,7 @@ class AWS(object):
                 for x in allInstances
                 if x.tags.get('role', '') == 'worker'
                 and x.state_code not in (STOPPED, TERMINATED)]
+        print(ret)
         return ret
 
 
@@ -309,10 +310,10 @@ class Worker(Base):
             Worker.update(session, worker)
         validIds = [x['awsID'] for x in awsWorkers]
         session.commit()
-        # session.query(cls).\
-        #     filter(cls.aws_id.notin_(validIds)).\
-        #     delete(synchronize_session=False)
-        # session.expire_all()
+        session.query(cls).\
+            filter(cls.aws_id.notin_(validIds)).\
+            delete(synchronize_session=False)
+        session.expire_all()
 
 
     @classmethod
@@ -334,8 +335,6 @@ class Worker(Base):
                 worker.region_human = instance['region_human']
                 worker.time_stamp = time.time()
                 session.commit()
-                if not worker.cc2w:
-                    worker.sendHello(session, worker.ip)
 
     @classmethod
     def gotHello(cls, session, ip):
@@ -550,6 +549,7 @@ def getWorkers(session, aws, force=False):
     @TODO: Update the local copy of the workers
     """
     if force or Worker.isStale(session):
+        print('stale')
         awsWorkers = aws.getWorkers()
         Worker.updateAll(session, awsWorkers)
     return Worker.getAll(session)
