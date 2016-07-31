@@ -8,6 +8,15 @@ apt-get install curl git-core gcc make zlib1g-dev libbz2-dev libreadline-dev lib
 
 apt-get install postgresql postgresql-server-dev-9.3 postgresql -y
 
+sudu -u postgres bash -c '
+createdb verodin
+createuser --superuser verodin #pretty sure this will promp for password
+'
+
+# change login to trust
+# vim /etc/postgresql/9.3/main/pg_hba.conf
+/etc/init.d/postgresql restart
+
 git clone https://github.com/nephlm/verodin /opt/verodin
 chmod -R 755 /opt/verodin
 chown -R ubuntu:ubuntu /opt/verodin

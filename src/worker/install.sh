@@ -3,6 +3,8 @@ echo "yes" > /tmp/installScriptStart.txt
 
 #pyenv/virtualenv
 apt-get install curl git-core gcc make zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libssl-dev -y
+#psycopg2
+apt-get install libpq-dev python-dev -y
 
 sudo -u ubuntu bash -c '
 export HOME="/home/ubuntu"
