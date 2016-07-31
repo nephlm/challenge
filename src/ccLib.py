@@ -164,6 +164,7 @@ class AWS(object):
         script += 'apt-get install git -y\n'
         script += 'git clone https://github.com/nephlm/verodin /tmp/verodin\n\n'
         script += 'chmod -R 755 /tmp/verodin\n'
+        script += 'chown -R ubuntu:ubuntu /tmp/verodin\n'
         script += 'echo "CC_IP=%s" >> /tmp/verodin/src/worker/config.py' % getMyIPAddress()
         script += 'sh /tmp/verodin/src/worker/install.sh\n\n'
         return script

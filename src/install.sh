@@ -1,8 +1,14 @@
 #! /bin/sh
-echo "yes" > /tmp/installScriptStart.txt
 
-#pyenv/virtualenv
+apt-get update
+apt-get install git  -y
+
+#pyenv
 apt-get install curl git-core gcc make zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libssl-dev -y
+
+git clone https://github.com/nephlm/verodin /opt/verodin
+chmod -R 755 /opt/verodin
+chown -R ubuntu:ubuntu /opt/verodin
 
 sudo -u ubuntu bash -c '
 export HOME="/home/ubuntu"
@@ -15,7 +21,10 @@ eval "$(pyenv virtualenv-init -)"
 pyenv install 2.7.12
 pyenv virtualenv 2.7.12 verodin '
 
+# need to get the keys to /opt/verodin/src/keys
+# or delete them and have them recreate.
+
 yes | pip install -r /opt/verodin/requirements.txt
-yes | pip install gunicorn
+
 
 python /tmp/verodin/src/worker/worker.py &
