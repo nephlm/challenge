@@ -2,6 +2,9 @@
     margin: 0px;
     padding: 0px;
 }
+body {
+    background-color: #cceeff;
+}
 div {
     border-width: 1px;
     border-style: solid;
@@ -34,6 +37,12 @@ thead {
     margin: .25em;
     color: #300;
 }
+#work {
+    background-color: ffe6cc
+}
+
+
+
 #controls {
     vertical-align: top;
     border-style: solid;

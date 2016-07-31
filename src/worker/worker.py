@@ -21,11 +21,15 @@ app = Flask(__name__, static_url_path='')
 app.debug = False
 app.config.from_object('config')
 print(app.config['CC_IP'])
-app.state = {'hello': False, 'ip': workerLib.getMyIPAddress()}
+app.state = {'hello': False,
+            'ip': workerLib.getMyIPAddress(),
+            'cc_port': 8317}
 
 def hello():
     try:
-        url = 'http://' + app.config['CC_IP'] + ':5000/api/worker/' + app.state['ip']
+        url = 'http://%s:%s/api/worker/%s' % (app.config['CC_IP'],
+                    str(app.state['cc_port']), app.state['ip'])
+        # url = 'http://' + app.config['CC_IP'] + ':' + str(app.state['cc_port']) + '/api/worker/' + app.state['ip']
         resp = requests.get(url, timeout=2)
         resp.raise_for_status()
         app.state['hello'] = True
