@@ -307,6 +307,7 @@ class Worker(Base):
         for worker in awsWorkers:
             Worker.update(session, worker)
         validIds = [x['awsID'] for x in awsWorkers]
+        session.commit()
         session.query(cls).\
             filter(cls.aws_id.notin_(validIds)).\
             delete(synchronize_session=False)
