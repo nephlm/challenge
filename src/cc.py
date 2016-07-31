@@ -6,6 +6,11 @@ import flask
 from flask import Flask, request
 import os
 
+from apscheduler.schedulers.background import BackgroundScheduler
+
+import logging
+logging.basicConfig()
+
 import ccLib
 
 OK = 'okay'
@@ -53,7 +58,8 @@ def stopWorker(region, id):
 
 @app.route('/api/worker')
 def getWorkers():
-    workers = ccLib.getWorkers(app.session, app.aws)
+    print('in the url')
+    workers = ccLib.Worker.getAll(app.session)
     return flask.json.jsonify({'result': workers})
 
 @app.route('/api/worker/<ip>')
@@ -69,6 +75,7 @@ def hello(ip):
 
 @app.route('/api/work', methods=['GET'])
 def getWorkQueue():
+    print('get the q')
     jobs = app.queue.getJobs(app.session, 20)
     return flask.json.jsonify({'result': jobs})
 
@@ -106,9 +113,20 @@ def failWork():
                 result.get('id'), result.get('data'))
     return flask.json.jsonify({'result': OK})
 
+def tick():
+    print('Wakeup Scheduler')
+    # New thread, so it needs it's own session
+    session = ccLib.initDB()
+    ccLib.getWorkers(session, app.aws)
 
+def interval():
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(tick, 'interval', seconds=10)
+    scheduler.start()
+    print('Scheduler Started')
 
 # Or specify port manually:
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8317))
+    interval()
     app.run(host='0.0.0.0', port=port)

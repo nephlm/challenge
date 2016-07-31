@@ -305,24 +305,27 @@ class Worker(Base):
     @classmethod
     def updateAll(cls, session, awsWorkers):
         for worker in awsWorkers:
+            pass
             Worker.update(session, worker)
         validIds = [x['awsID'] for x in awsWorkers]
         session.commit()
-        session.query(cls).\
-            filter(cls.aws_id.notin_(validIds)).\
-            delete(synchronize_session=False)
-        session.expire_all()
+        # session.query(cls).\
+        #     filter(cls.aws_id.notin_(validIds)).\
+        #     delete(synchronize_session=False)
+        # session.expire_all()
 
 
     @classmethod
     def update(cls, session, instance):
         if instance['ip'] is None:
+            print 'no ip'
             # Shutting down, no longer relevant to us.
             # In a perfect world we'd make sure it shut down properly,
             # but out of scope for this.
             session.query(cls).filter(cls.aws_id == instance['awsID']).delete()
             session.commit()
         else:
+            print 'ip'
             worker = cls.getWorker(session, instance['ip'], instance['awsID'])
             if worker:
                 worker.state = instance['state']
@@ -346,7 +349,7 @@ class Worker(Base):
     def sendHello(cls, session, ip):
         try:
             print('http://%s:%s/api/hello' % (ip, 6000))
-            resp = requests.get('http://%s:%s/api/hello' % (ip, 6000))
+            resp = requests.get('http://%s:%s/api/hello' % (ip, 6000), timeout=1)
             resp.raise_for_status()
             print(resp.text)
             worker = cls.getWorker(session, ip)
@@ -521,7 +524,8 @@ def getDB():
     """
     Create the DB engine object.
     """
-    db = DB.create_engine('sqlite:///verodin.db')
+    #db = DB.create_engine('sqlite:///verodin.db')
+    db = DB.create_engine('postgresql://verodin:verodin@localhost/verodin')
     return db
 
 def initDB():

@@ -6,6 +6,8 @@ apt-get install git  -y
 #pyenv
 apt-get install curl git-core gcc make zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libssl-dev -y
 
+apt-get install postgresql postgresql-server-dev-9.3 postgresql -y
+
 git clone https://github.com/nephlm/verodin /opt/verodin
 chmod -R 755 /opt/verodin
 chown -R ubuntu:ubuntu /opt/verodin
