@@ -328,6 +328,8 @@ class Worker(Base):
                 worker.region_human = instance['region_human']
                 worker.time_stamp = time.time()
                 session.commit()
+                if not worker.cc2w:
+                    worker.sendHello(session, worker.ip)
 
     @classmethod
     def gotHello(cls, session, ip):
@@ -335,13 +337,23 @@ class Worker(Base):
         if worker:
             worker.w2cc = True
             session.commit()
+        cls.sendHello(session, ip)
 
     @classmethod
-    def sentHello(cls, session, ip):
-        worker = cls.getWorker(session, ip)
-        if worker:
-            worker.cc2w = True
-            session.commit()
+    def sendHello(cls, session, ip):
+        try:
+            print('http://%s:%s/api/hello' % (ip, 6000))
+            resp = requests.get('http://%s:%s/api/hello' % (ip, 6000))
+            resp.raise_for_status()
+            print(resp.text)
+            worker = cls.getWorker(session, ip)
+            if worker:
+                worker.cc2w = True
+                session.commit()
+        except (requests.ConnectionError, requests.HTTPError):
+            print('send failed')
+            raise
+            pass
 
 
 class Job(Base):
@@ -411,6 +423,8 @@ class Job(Base):
         @TODO: If a worker asks for a job but is still working on
         a job then fail the job.
         """
+        # jobs = session.query(cls).filter(cls.start == None).order_by(cls.submit).all()
+        # print([(x.url, x.submit) for x in jobs])
         job = session.query(cls).\
             filter(cls.start == None).\
             order_by(cls.submit).\
@@ -424,10 +438,11 @@ class Job(Base):
             return None
 
     @classmethod
-    def finishJob(cls, url, worker, data):
+    def finishJob(cls, session, url, worker, data):
         """
         Called when a worker completes a job and returns results.
 
+        @param session: DB Session -- access to DB
         @param url: string -- URL of job being completed.
         @param worker: string -- id of the worker completing the job.
         @param data: string -- The result of the job (RAW HTML)
@@ -443,11 +458,12 @@ class Job(Base):
         session.commit()
 
     @classmethod
-    def failJob(cls, url, worker, data):
+    def failJob(cls, session, url, worker, data):
         """
         Called when a worker completes a job and returns results.
         At present failed tasks are just immediately resubmitted.
 
+        @param session: DB Session -- access to DB
         @param url: string -- URL of job being failed.
         @param worker: string -- id of the worker failing the job.
         @param data: string -- Any information about the failure.
@@ -458,12 +474,13 @@ class Job(Base):
         job = session.query(cls).\
             filter(cls.start is not None, cls.worker == worker, cls.url == url).\
             with_for_update().first()
-        job.submit = time.time()
-        job.start = None
-        job.complete = None
-        job.worker = None
-        job.result = None
-        session.commit()
+        if job:
+            job.submit = time.time()
+            job.start = None
+            job.complete = None
+            job.worker = None
+            job.result = None
+            session.commit()
 
     @classmethod
     def getJobs(cls, session, count=None):

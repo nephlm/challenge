@@ -38,7 +38,11 @@ thead {
     color: #300;
 }
 #work {
-    background-color: ffe6cc
+    background-color: #ffe6cc
+}
+#addurls {
+    width: 50em;
+    height: 10em;
 }
 
 

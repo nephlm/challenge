@@ -15,6 +15,7 @@ app.debug = True
 app.config.from_object('config')
 app.ccConfig = {}
 app.ccState = {}
+app.state = {'ip': ccLib.getMyIPAddress()}
 
 app.aws = ccLib.AWS()
 app.aws.createKeypairs()
@@ -58,7 +59,8 @@ def getWorkers():
 @app.route('/api/worker/<ip>')
 def hello(ip):
     print('got hello: %s' % ip)
-    return flask.json.jsonify({'result': ccLib.getMyIPAddress()})
+    ccLib.Worker.gotHello(app.session, ip)
+    return flask.json.jsonify({'result': app.state['ip']})
 
 
 
@@ -91,20 +93,22 @@ def getWork(ip):
     return flask.json.jsonify({'result': work})
 
 @app.route('/api/work/finish', methods=['POST'])
-def finishWork(id):
+def finishWork():
     result = request.get_json()
-    queue.finishJob(result.get('url'), result.get('id'), result.get('data'))
+    app.queue.finishJob(app.session, result.get('url'),
+                result.get('id'), result.get('data'))
     return flask.json.jsonify({'result': OK})
 
 @app.route('/api/work/fail', methods=['POST'])
-def failWork(id):
+def failWork():
     result = request.get_json()
-    queue.failJob(result.get('url'), result.get('id'), result.get('data'))
+    app.queue.failJob(app.session, result.get('url'),
+                result.get('id'), result.get('data'))
     return flask.json.jsonify({'result': OK})
 
 
 
 # Or specify port manually:
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 8317))
     app.run(host='0.0.0.0', port=port)

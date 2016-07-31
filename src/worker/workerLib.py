@@ -10,3 +10,4 @@ def getMyIPAddress():
     @returns: str -- external ip address of localhost
     """
     return requests.get('https://api.ipify.org').text
+
