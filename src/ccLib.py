@@ -299,6 +299,7 @@ class Worker(Base):
         if not worker and awsID:
             worker = cls(ip=ip, aws_id=awsID)
             session.add(worker)
+            session.commit()
         return worker
 
     @classmethod
@@ -319,6 +320,7 @@ class Worker(Base):
             # In a perfect world we'd make sure it shut down properly,
             # but out of scope for this.
             session.query(cls).filter(cls.aws_id == instance['awsID']).delete()
+            session.commit()
         else:
             worker = cls.getWorker(session, instance['ip'], instance['awsID'])
             if worker:
@@ -336,7 +338,7 @@ class Worker(Base):
         worker = cls.getWorker(session, ip)
         if worker:
             worker.w2cc = True
-            session.commit()
+        session.commit()
         cls.sendHello(session, ip)
 
     @classmethod
@@ -349,11 +351,9 @@ class Worker(Base):
             worker = cls.getWorker(session, ip)
             if worker:
                 worker.cc2w = True
-                session.commit()
+            session.commit()
         except (requests.ConnectionError, requests.HTTPError):
             print('send failed')
-            raise
-            pass
 
 
 class Job(Base):

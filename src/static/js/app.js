@@ -24,7 +24,6 @@ verodinApp.controller('VerodinCtrl',
     };
 
     $scope.startWorker = function() {
-        console.log('startWorker');
         $http.get('/api/start/' + $scope.selectedRegion[0]).
         success(function(data) {
             $scope.runningWorkers = data['result'];
@@ -35,7 +34,6 @@ verodinApp.controller('VerodinCtrl',
     }
 
     $scope.stopWorker = function(region, id) {
-        console.log('startWorker');
         $http.get('/api/' + region + '/' + id + '/stop').
         success(function(data) {
             $scope.runningWorkers = data['result'];
@@ -58,7 +56,6 @@ verodinApp.controller('VerodinCtrl',
     $scope.getQueue = function() {
         $http.get('/api/work').
         success(function(data) {
-            console.log(data['result'].jobs[0])
             $scope.work = data['result'];
         }).
         error(function(data) {
@@ -67,11 +64,9 @@ verodinApp.controller('VerodinCtrl',
     }
 
     $scope.addUrls = function() {
-        console.log('startWorker');
         $http.post('/api/work',
             {'urls': $scope.newUrls.split('\n')}).
             success(function(data) {
-                console.log('success');
                 $scope.newUrls = '';
                 $scope.getQueue();
             });
