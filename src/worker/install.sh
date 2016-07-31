@@ -15,7 +15,7 @@ eval "$(pyenv virtualenv-init -)"
 pyenv install 2.7.12
 pyenv virtualenv 2.7.12 verodin
 . $PYENV_ROOT/versions/verodin/bin/activate
-yes | pip install -r /opt/verodin/requirements.txt
+yes | pip install -r /tmp/verodin/requirements.txt
 yes | pip install gunicorn
 python /tmp/verodin/src/worker/worker.py &
 
