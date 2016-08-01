@@ -520,6 +520,8 @@ class Job(Base):
         delete all jobs
         """
         session.query(cls).delete()
+        session.commit()
+        session.expire_all()
 
 def getDB():
     """
