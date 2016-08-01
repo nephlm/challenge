@@ -510,7 +510,7 @@ class Job(Base):
             query = query.limit(count)
         jobs = query.all()
         cnt = session.query(cls).filter(cls.start == None).count()
-        done = session.query(cls).filter(cls.start =! None).count()
+        done = session.query(cls).filter(cls.start != None).count()
         jobList = [{'url': j.url, 'submit': j.submit} for j in jobs]
         return {'cnt': cnt, 'jobs': jobList, 'done': done}
 
