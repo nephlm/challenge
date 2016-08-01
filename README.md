@@ -1,5 +1,4 @@
-# verodin
-Verodin Challenge
+#Verodin Challenge
 
 If something hasn't gone awry, You should be able to start the CC
 instance in the Virginia region.  Once it is up connect to the web
@@ -28,7 +27,7 @@ with a cleans state to try again.  Any such broken links at the end
 will juggle around and play havok with the queue numbers as they're
 continuously retried.
 
-Not Yet Handled:
+##Not Yet Handled:
 
 Major things that aren't handled in this version of the challenge.  I'm
 sure there are many more minor things, but these are major items.
@@ -54,7 +53,7 @@ AWS are ignored with may cause failures to launch or terminate workers
 or display of stale data.  These issues are usually only solvable by
 an error reporting mechanism, which doesn't exist yet.
 
-UI
+###UI
 
 * When the queue is down to just URLs that cant' be processed, the
 numbers will fluctuate.
