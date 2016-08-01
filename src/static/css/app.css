@@ -7,42 +7,94 @@ body {
 }
 div {
     border-width: 1px;
-    border-style: solid;
+    border-style: none;
 }
-label {
+/*label {
     opacity: 0.5 ;
     font-size: 80%;
     text-align: center;
     margin: 0;
     padding: 0;
 }
-p {
+*/p {
     margin: 0;
     padding: 0;
 }
-tr {
-    cursor: pointer;
+table {
+    border-style: solid;
+    border-width: 1px;
+    background-color: #f6f6f6;
+    padding: 1em;
+    margin-bottom: .5em;
 }
 tr:hover {
-    background-color: #fff5f5;
+    background-color: #cceeff;
 }
 td {
     padding: .25em;
+    padding-left: .5em;
+    padding-right: .5em;
     text-align: center;
 }
 thead {
     font-weight: bold;
 }
+ul {
+    list-style-type: none;
+}
 .header {
     margin: .25em;
     color: #300;
+    font-weight: bold;
+    font-size: 200%;
+}
+.section {
+    font-weight: bold;
+    font-size: 125%;
+    margin-bottom: .5em;
+}
+#workers {
+    padding: .5em;
+    border-top-style: solid;
+    border-top-width: 1px;
+}
+#start-new {
+    margin-top: .5em;
+    font-weight: bold;
+}
+.jobs {
+    padding: .5em;
+    border-style: solid;
+    border-width: 1px;
+    background-color: #f6f6f6;
+    margin-bottom: 1em;
+    width: 80%;
 }
 #work {
-    background-color: #ffe6cc
+    border-top-style: solid;
+    border-top-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    background-color: #ffe6cc;
+    padding: .5em;
+}
+#queue {
+    border-bottom-style: solid;
+    border-bottom-width: 1px;
+    padding: .5em;
+}
+.queueList {
+    margin-top: 1em;
 }
 #addurls {
     width: 50em;
     height: 10em;
+    background-color: #f6f6f6;
+    margin-bottom: .5em;
+}
+.instructions {
+    color: #555555;
+    font-size: 85%;
 }
 
 
@@ -71,6 +123,8 @@ thead {
 }
 .hcenter {
     text-align: center;
+}.left {
+    text-align: left;
 }
 .arrow {
     font-size: 150%;

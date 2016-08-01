@@ -7,7 +7,7 @@ verodinApp.controller('VerodinCtrl',
     $scope.error = '';
     $scope.selectedRegion = ['', ''];
     $scope.runningWorkers = {};
-    $scope.newUrls = 'Add Urls.  One per line.';
+    $scope.newUrls = '';
     $scope.work = {};
 
     $http.get('/api/regions').

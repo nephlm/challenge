@@ -16,10 +16,12 @@
 
 	<div id="workers">
 		<div id="running">
-			Running Workers {{foo}}
+			<p class="section">
+			Running Workers
+			</p>
 			<table>
 				<tr>
-					<td>ID</td>
+					<td class="left">ID</td>
 					<td>IP Address</td>
 					<td>Region</td>
 					<td>State</td>
@@ -28,7 +30,7 @@
 					<td>Actions</td>
 				</tr>
 				<tr ng-repeat="worker in runningWorkers">
-					<td>{{worker.awsID}}</td>
+					<td class="left">{{worker.awsID}}</td>
 					<td>{{worker.ip}}</td>
 					<td>{{worker.region_human}}</td>
 					<td>{{worker.state}}</td>
@@ -37,8 +39,11 @@
 					<td><a href="#" ng-click="stopWorker(worker.region, worker.awsID)">stop</a></td>
 				</tr>
 			</table>
-			<p>Once running it can take several minutes to configure the
-			node for operation.</p>
+			<p class="instructions">
+				Once running it can take
+				several minutes to configure the
+				node for operation.
+			</p>
 		</div>
 		<div id="start-new">
 			Start New Worker:
@@ -48,32 +53,50 @@
 				</button>
       			<ul class="dropdown-menu" uib-dropdown-menu role="menu" aria-labelledby="region">
 			        <li role="menuitem" ng-repeat="name in regions"><a href="#" ng-click="setRegion($index)">{{name[1]}}</a></li>
-		      </ul>
-		      <button ng-click="startWorker()">Start</button>
+		      </ul>&nbsp;
 			</div>
+		      <button class="btn btn-primary" ng-click="startWorker()">Start</button>
 		</div>
 	</div>
 
 	<div id="work">
 		<div id="add-urls">
-			<p>Add Urls</p>
+			<p class="section">Add Urls</p>
+			<p class="instructions">Add urls to be processed.
+			Each URL should be on a seperate line and be complete
+			(e.g. http://example.com/foo?bar=5)
+			</p>
 			<textarea id="addurls" ng-model="newUrls">
 			</textarea id="url-input">
 			<p>
-				<button ng-click="addUrls()">Submit</button>
+				<button class="btn btn-primary" ng-click="addUrls()">Submit</button>
 			</p>
 		</div>
-		<div id="queue">
-			Queue Length: {{work.cnt}}
+	</div>
+	<div id="queue">
+		<p class="section">Queue</p>
 
-			<div>
-				<p>Next 20 Jobs:</p>
-				<ul>
+		URLs to Process: {{work.cnt}}<br>
+		Processed URLs: {{work.done}}
+
+		<div class="queueList">
+			<p>Next 20 Jobs:</p>
+			<div class="jobs">
+				<ul class="unstyled">
 					<li ng-repeat="job in work.jobs">{{job.url}}</li>
+					<li ng-show="!work.jobs.length">No URLs in queue.</li>
 				</ul>
-				<button ng-click="clearQueue()">Clear Queue</button>
 			</div>
+			<button class="btn btn-primary" ng-click="clearQueue()">Clear Queue</button>
 		</div>
+		<p class="instructions">
+			URLs that cannot be processed will be returned to
+			the queue.  A URL can only be added to the
+			queue once.
+			Duplicate URLs that have been successfully
+			processed will be filtered on and not shown
+			in the list.
+		</p>
 	</div>
 
 </div>

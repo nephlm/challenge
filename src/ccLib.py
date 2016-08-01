@@ -493,7 +493,8 @@ class Job(Base):
 
         @returns dict --
                 {
-                'cnt': int -- total depth of the queue
+                'cnt': int -- total depth of the queue,
+                'done': int -- total number of complete jobs,
                 'jobs': list (count long) -- the next count jobs; jobs
                         are repr'd as a dict
                         {
@@ -509,8 +510,9 @@ class Job(Base):
             query = query.limit(count)
         jobs = query.all()
         cnt = session.query(cls).filter(cls.start == None).count()
+        done = session.query(cls).filter(cls.start =! None).count()
         jobList = [{'url': j.url, 'submit': j.submit} for j in jobs]
-        return {'cnt': cnt, 'jobs': jobList}
+        return {'cnt': cnt, 'jobs': jobList, 'done': done}
 
     @classmethod
     def delete(cls, session):
