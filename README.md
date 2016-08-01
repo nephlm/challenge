@@ -61,3 +61,8 @@ numbers will fluctuate.
 dropped without any user feedback.
 * No feedback about the state of nodes coming up (which takes too long
 since Python 2.7.12 is compiled during the config phase.)
+
+###Quirks
+
+* The keypair names are not uniquified, so if multiple CCs are up, unless the files are copied, they will delete each others keys
+that Amazon stores, making sshing into new instances impossible.

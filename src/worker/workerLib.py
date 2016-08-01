@@ -1,3 +1,7 @@
+"""
+Much smaller worker lib.  Probably should just be rolled into worker.py.
+"""
+
 import requests
 
 def getMyIPAddress():

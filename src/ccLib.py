@@ -1,16 +1,25 @@
+"""
+File with the main business logic for the CC.
+"""
+
 import csv
 import os.path
 import sys
 import time
 
 import boto.ec2.keypair
+import requests
 
+"""
+Since the webserver will be threaded we need somewhere to store state
+accessible to all the threads. We utilize a postgres db for this
+purpose.
+"""
 import sqlalchemy as DB
 from sqlalchemy.ext.declarative import declarative_base, declared_attr
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 
-import requests
 
 # path to the downloaded AWS credential file
 # Assumed to have the standard header
@@ -20,7 +29,8 @@ import requests
 DEFAULT_CREDENTIAL_PATH='../credentials.csv'
 
 
-# These are the stock ubuntu server 14.04 AMIs.
+# These are the stock ubuntu server 14.04 AMIs.  We configure them
+# when they are instantiated.
 REGIONS = {
     'us-east-1': {'name': 'Virginia', 'ami': 'ami-2d39803a'},
     'us-west-1': {'name': 'California', 'ami': 'ami-48db9d28'},
@@ -35,7 +45,7 @@ REGIONS = {
 #     'eu-west-1': {'name': 'Ireland', 'ami': 'ami-'},
 }
 
-# aws instance states
+# AWS instance states
 RUNNING = 16
 TERMINATED = 48
 STOPPED = 80
@@ -55,9 +65,7 @@ class AWS(object):
                 self.secretKey = self.credentials[2]
         except (IOError, IndexError):
             print('Could not read credentials from %s or bad format.' % credentialPath)
-            raise
             sys.exit(1)
-
 
         self.conns = {} # connection cache
 
@@ -87,6 +95,9 @@ class AWS(object):
 
         If you delete keypairs through the AWS UI you'll have to delete
         the corresponding file locally.
+
+        If you have multiple servers up on one account, they will
+        overwrite each other's keys, breaking ssh.
         """
         keyDir = os.path.abspath('./keys')
         if not os.path.isdir(keyDir):
@@ -117,7 +128,8 @@ class AWS(object):
         Once copied they are not linked and so any changes won't
         propagate, but if you delete the 'worker' SG in regions
         other than 'us-east-1' it will be copied fresh if this
-        method is called.
+        method is called. (which happens with the webserver is
+        started.)
         """
         conn = self.getConn('us-east-1')
         for sGroup in conn.get_all_security_groups([sgName]):
@@ -155,7 +167,7 @@ class AWS(object):
         a worker is created. It is passed to the new node by the
         user_data parameter in run_instances.
 
-        @returns: string script.
+        @returns: string version of script.
         """
         script = ''
         script += '#!/bin/sh\n\n'
@@ -172,8 +184,9 @@ class AWS(object):
     def startWorker(self, region):
         """
         Start a new worker in the specified region.
-        Created instances with be tagged with the 'role' or 'worker'.
-        This is used for monitoring.
+        Created instances with be tagged with the 'role' of 'worker'.
+        This is used for monitoring for selection of what nodes are
+        displayed to the end user.
 
         @param region: string representation of the region
         (i.e. 'us-east-1')
@@ -214,7 +227,7 @@ class AWS(object):
             {
             'id': string -- AWS instance id,
             'ip': string -- public IP address of instance.
-            'state': string -- Human desc or state.
+            'state': string -- Human desc of state.
             'state_code': int -- Numeric state of instance.
             'region': string -- region where instance is running.
             'region_human': string -- Human friendly version or region.
@@ -240,19 +253,14 @@ class AWS(object):
         return ret
 
 
-# import sqlalchemy.sql
-# import sqlalchemy.orm as orm
-# from sqlalchemy.orm.exc import NoResultFound
-# from sqlalchemy.orm.exc import MultipleResultsFound
-
-# Gunicorn runs muliple processes and so state needs to be maintained
-# outside of the app.  A simple sqlite3 db is used for this purpose.
-
 Base = declarative_base()
 
 class Worker(Base):
     """
-    Data about workers.  Primarily if they've said hello.
+    Data about workers.  This is a cache of the AWS call to get
+    the list.  That call can be unpredictibly slow so the cache is
+    used for all requests while it is checked against AWS every
+    3-10 seconds (depending on the cache state (see isStale)).
     """
     __tablename__ = 'worker'
     id = DB.Column(DB.Integer, primary_key=True)
@@ -268,6 +276,17 @@ class Worker(Base):
 
     @classmethod
     def isStale(cls, session):
+        """
+        Decides if a call to AWS to refresh the cache is required.
+        The general rules are:
+            * A worker that hasn't been checked in 10 sec.
+            * A worker in the cache not in RUNNING state (likely to change)
+            * No workers (nothing in the cache to help decide)
+
+        @param session: DB Session -- access to DB
+
+        @returns: bool
+        """
         if session.query(cls).filter(cls.time_stamp < (time.time() - 10)).count() \
                 or session.query(cls).filter(cls.state_code != RUNNING).count() \
                 or session.query(cls).count() == 0:
@@ -277,6 +296,24 @@ class Worker(Base):
 
     @classmethod
     def getAll(cls, session):
+        """
+        Get all (non-TERMINATED) nodes from the cache.
+
+        @param session: DB Session -- access to DB
+
+        @returns: list of dict -- The workers
+            {
+            'awsID': string -- id used by AWS,
+            'ip': string -- IP address,
+            'state': string -- human friendly state,
+            'state_code': int -- integer state,
+            'region': string -- region id,
+            'region_human': string -- human friendly region,
+            'cc2w': bool -- CC has said hello to the worker.,
+            'w2cc': bool -- worker has said hello to CC,
+            'time_stamp': float -- last time an update happened.
+            }
+        """
         workers = session.query(cls).\
             filter(cls.state_code != TERMINATED).\
             order_by(cls.region).all()
@@ -293,6 +330,17 @@ class Worker(Base):
 
     @classmethod
     def getWorker(cls, session, ip, awsID=None):
+        """
+        Returns a worker specified by IP or None.
+        If the worker doesn't exist and the awsID is
+        provided it will be created.
+
+        @param session: db access
+        @param ip: string -- IP address
+        @param awsID -- string AWS ID.
+
+        @returns Worker -- Worker specified by IP.
+        """
         worker = None
         worker = session.query(cls).\
             filter(cls.ip == ip).\
@@ -305,6 +353,12 @@ class Worker(Base):
 
     @classmethod
     def updateAll(cls, session, awsWorkers):
+        """
+        Syncs the local cached with the reuslt of the AWS call.
+
+        @param session: DB access.
+        @param awsWorkers: dict -- output of AWS.getWorkers()
+        """
         for worker in awsWorkers:
             pass
             Worker.update(session, worker)
@@ -318,6 +372,13 @@ class Worker(Base):
 
     @classmethod
     def update(cls, session, instance):
+        """
+        Updates an existing Worker in the cache.
+
+        @param session: DB access
+        @instance: dict -- one elements of the dict retuned by
+            AWS.getWorkers()
+        """
         if instance['ip'] is None:
             print 'no ip'
             # Shutting down, no longer relevant to us.
@@ -326,7 +387,6 @@ class Worker(Base):
             session.query(cls).filter(cls.aws_id == instance['awsID']).delete()
             session.commit()
         else:
-            print 'ip'
             worker = cls.getWorker(session, instance['ip'], instance['awsID'])
             if worker:
                 worker.state = instance['state']
@@ -338,6 +398,13 @@ class Worker(Base):
 
     @classmethod
     def gotHello(cls, session, ip):
+        """
+        Updates the DB with the fact that a Hello has been received
+        from IP.
+
+        @param session: DB access
+        @param ip: string -- IP Address.
+        """
         worker = cls.getWorker(session, ip)
         if worker:
             worker.w2cc = True
@@ -346,11 +413,19 @@ class Worker(Base):
 
     @classmethod
     def sendHello(cls, session, ip):
+        """
+        Tries to send a hello message to the specified IP.  If
+        successful, updates the DB.
+
+        This function doesn't make a determination if a Hello should
+        sent.  If called it will try to send one.
+
+        @param session: DB access
+        @param ip: string -- IP Address.
+        """
         try:
-            print('http://%s:%s/api/hello' % (ip, 6000))
             resp = requests.get('http://%s:%s/api/hello' % (ip, 6000), timeout=1)
             resp.raise_for_status()
-            print(resp.text)
             worker = cls.getWorker(session, ip)
             if worker:
                 worker.cc2w = True
@@ -407,7 +482,6 @@ class Job(Base):
                 session.commit()
                 success = True
             except IntegrityError:
-
                 # duplicate, skip it
                 session.rollback()
 
@@ -491,6 +565,9 @@ class Job(Base):
         Returns the next count jobs to process.  If count is None,
         returns all jobs.
 
+        @param session: DB access.
+        @param count: int or None -- Number of jobs to return.
+
         @returns dict --
                 {
                 'cnt': int -- total depth of the queue,
@@ -517,7 +594,9 @@ class Job(Base):
     @classmethod
     def delete(cls, session):
         """
-        delete all jobs
+        Delete all jobs.
+
+        @param session: DB access.
         """
         session.query(cls).delete()
         session.commit()
@@ -526,6 +605,8 @@ class Job(Base):
 def getDB():
     """
     Create the DB engine object.
+
+    @returns: engine
     """
     #db = DB.create_engine('sqlite:///verodin.db')
     db = DB.create_engine('postgresql://verodin:verodin@localhost/verodin')
@@ -534,6 +615,8 @@ def getDB():
 def initDB():
     """
     Set up the db if it doesn't exist. Create the session.
+
+    @returns: session.  Should only be called once per thread.
     """
     Session = sessionmaker(bind=getDB())
     session = Session()
@@ -546,11 +629,12 @@ def getWorkers(session, aws, force=False):
     Wrapper that decides whether to return cached values or query
     AWS and update the cache.
 
+    NOTE:  Do not call this directly from a web call.  Web requests
+    should call Worker.getAll().
+
     @param session: db session object
     @param aws: AWS object
 
-    @TODO: Decide if an AWS call is warranted or if our cache is okay.
-    @TODO: Update the local copy of the workers
     """
     if force or Worker.isStale(session):
         print('stale')
@@ -567,5 +651,8 @@ def getMyIPAddress():
     localhost will appear to originate.
 
     @returns: str -- external ip address of localhost
+
+    @NOTE: There is a way to get AWS to tell me this, but this is
+    more general.
     """
     return requests.get('https://api.ipify.org').text

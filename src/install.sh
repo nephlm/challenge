@@ -1,5 +1,12 @@
 #! /bin/sh
 
+# This is an approximate script for setting up CC.  It has never been
+# run in an automated fashion and there are pieces that require
+# human interaction.
+
+# Consider it more of a concise instruction sheet.
+
+
 apt-get update
 apt-get install git  -y
 
@@ -33,7 +40,7 @@ pyenv install 2.7.12
 pyenv virtualenv 2.7.12 verodin '
 
 # need to get the keys to /opt/verodin/src/keys
-# or delete them and have them recreate.
+# or delete them and have them recreated.
 
 yes | pip install -r /opt/verodin/requirements.txt
 

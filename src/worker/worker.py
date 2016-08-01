@@ -1,5 +1,7 @@
 """
-Flask request routing.
+Worker processing.  This file only services a single endpoint used
+to verify communication.  The majority of the work originates from
+the scheduler.
 """
 
 import flask
@@ -25,18 +27,21 @@ app.config['CC_PORT'] = 8317
 app.state = {'hello': False,
             'ip': workerLib.getMyIPAddress(),
             'failedJobs': []}
+
 if LOCAL_DEV:
+    # For dev on a machine running both cc.py and worker.py
     app.config['CC_IP'] = '127.0.0.1'
     app.state['ip'] = '127.0.0.1'
-    print(app.config['CC_IP'])
 
 app.state['baseUrl'] = 'http://%s:%s' % (app.config['CC_IP'], app.config['CC_PORT'])
 
 def hello():
+    """
+    Try and send the Hello message to CC.
+    """
     try:
         url = '%s/api/worker/%s' % (app.state['baseUrl'],
                     app.state['ip'])
-        # url = 'http://' + app.config['CC_IP'] + ':' + str(app.state['cc_port']) + '/api/worker/' + app.state['ip']
         resp = requests.get(url, timeout=2)
         resp.raise_for_status()
         app.state['hello'] = True
@@ -45,6 +50,11 @@ def hello():
         pass
 
 def getWork():
+    """
+    Request a job from CC and process it.  If any network communication
+    issues arise fail the job.  If the job can't be failed (can't talk
+    to CC), queue for failing later.
+    """
     jobUrl = ''
     try:
         reqUrl = '%s/api/work/%s' % (app.state['baseUrl'],
@@ -58,15 +68,28 @@ def getWork():
             r = finishOrFail('finish', jobUrl, app.state['ip'], jobData.text)
             r.raise_for_status()
     except (requests.ConnectionError, requests.HTTPError, requests.RequestException):
+        # Some sort of issue (bad URl, network, results, etc)
         # Try to fail the job
         try:
             finishOrFail('fail', jobUrl, app.state['ip'], None)
         except (requests.ConnectionError, requests.HTTPError, requests.RequestException):
             if jobUrl:
+                # queue it for later failing.
                 app.state['failedJobs'].append(jobUrl)
 
 def finishOrFail(op, jobUrl, id, data):
     """
+    Send a message to CC with success or failure information.
+
+    @param op: string -- 'fail' or 'finish'
+    @param jobUrl: string -- The URL that was processed (or failed)
+    @param id: string -- IP of the worker.
+    @param data: The result of the processing.  None if the job failed.
+
+    @returns: The request.
+
+    @Note: This process doesn't catch any errors, that's left to the
+    caller.
     """
     if op not in ('finish', 'fail'):
         op = 'fail' #safer
@@ -89,19 +112,24 @@ def failQueue():
     for job in app.state['failedJobs']:
         try:
             finishOrFail('fail', job, app.state['ip'], None)
-        except (requests.ConnectionError, requests.HTTPError):
+        except (requests.ConnectionError, requests.HTTPError, requests.RequestException):
             newQueue.append(job)
     app.state['failedJobs'] = newQueue
 
 
 def tick():
-    print('Wakeup Scheduler')
+    """
+    Scheduler callback.  Entry point into the worker.
+    """
     if not app.state.get('hello'):
         hello()
     failQueue()
     getWork()
 
 def interval():
+    """
+    Setup the scheduler.
+    """
     scheduler = BackgroundScheduler()
     scheduler.add_job(tick, 'interval', seconds=10)
     scheduler.start()
@@ -110,6 +138,9 @@ def interval():
 
 @app.route('/api/hello')
 def getHello():
+    """
+    The one end point.  Replies with a static method.
+    """
     return flask.json.jsonify({'hello': 'goodbye'})
 
 # Or specify port manually:
