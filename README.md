@@ -4,7 +4,7 @@ If something hasn't gone awry, You should be able to start the CC
 instance in the Virginia region.  Once it is up connect to the web
 interface at:
 
-`http://<public_ip>/`
+`http://<public_ip>:8317/`
 
 From there spin up some workers from the top section by selecting a
 regions and pressing `start`.  Since they are
@@ -58,7 +58,7 @@ needs to be put in place to make someone doing such spoofing do more work.
 * Error reporting: At present no sort of user feedback is provided for
 issues. Some sort of feedback on the ui or at least logs should be
 implemented.
-*AWS Failures: Proper handling of credential, rate limit, eventually
+* AWS Failures: Proper handling of credential, rate limit, eventually
 consistent, clock inconsistency and other edge cases when dealing with
 AWS are ignored with may cause failures to launch or terminate workers
 or display of stale data.  These issues are usually only solvable by
