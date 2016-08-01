@@ -32,6 +32,7 @@ continuously retried.
 * `src/cc.py` is the entry point into the controller and
 `src/worker/worker.py` is the entry point into the worker.
 * Each directory has a `install.sh`
+
 ** in the case of `src/worker` it  is exactly what is done
 to configure the worker (plus `generateScript()` in
 `ccLib.py`.
