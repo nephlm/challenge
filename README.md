@@ -1,4 +1,4 @@
-#Verodin Challenge
+#Tech Challenge
 
 If something hasn't gone awry, You should be able to start the CC
 instance in the Virginia region.  Once it is up connect to the web
